@@ -2,19 +2,18 @@ import api
 import runtime_constants
 from telebot import types
 
+from utils import show_money
+
 
 class Buy:
-    def __init__(self, bot, room_id):
+    def __init__(self, bot):
         self.bot = bot
-        self.room_id = room_id
+        self.room_id = ""
         self.room_members = []
         self.members = []
         self.name = ""
         self.cost = 0
-        if room_id == "":
-            self.start = self.get_room_id
-        else:
-            self.start = self.get_members
+        self.start = self.get_room_id
 
     def get_room_id(self, message):
         self.room_id = message.text.split("id")[-1]
@@ -41,6 +40,10 @@ class Buy:
             return
         for room_member in self.room_members:
             if room_member['name'] == message.text:
+                if room_member['id'] == str(message.from_user.id):
+                    self.bot.send_message(message.from_user.id, "Нельзя добавить себя в список")
+                    self.bot.register_next_step_handler(message, self.get_members)
+                    return
                 self.members.append(room_member)
                 self.bot.send_message(message.from_user.id, f"{message.text} добавлен")
                 self.bot.register_next_step_handler(message, self.get_members)
@@ -72,7 +75,7 @@ class Buy:
             elif len(split) == 1:
                 cost = int(split[0]) * 100
             else:
-                print("[PAY_MONEY] Empty telegram message")
+                print("[BUY] Empty telegram message")
                 self.bot.send_message(message.from_user.id, "Введите стоимость покупки:")
                 self.bot.register_next_step_handler(message, self.get_cost)
                 return
@@ -80,7 +83,7 @@ class Buy:
             users = ", ".join(map(lambda member: member['name'], self.members))
             self.bot.send_message(message.from_user.id,
                                   f"Вы действительно хотите сообщить о покупке {self.name}"
-                                  f" за {show_cost(self.cost)}руб., разделенной между {users} и вами?",
+                                  f" за {show_money(self.cost)}руб., разделенной между {users} и вами?",
                                   reply_markup=runtime_constants.YES_NO_MARKUP
                                   )
             self.bot.register_next_step_handler(message, self.finish)
@@ -113,17 +116,9 @@ class Buy:
                 for member in self.members:
                     self.bot.send_message(int(member['id']),
                                           f"Пользователь {buyer_name} купил {self.name} "
-                                          f"за {show_cost(self.cost)}руб. и "
+                                          f"за {show_money(self.cost)}руб. и "
                                           f"разделил эту покупку между собой, вами и ещё {len(self.members) - 1} людьми"
                                           )
 
         self.bot.send_message(message.from_user.id, "Выбери действие:", reply_markup=runtime_constants.START_MSG)
         del self
-
-
-def show_cost(cost: int) -> str:
-    higher = str(cost // 100)
-    lower = str(cost % 100)
-    if len(lower) == 1:
-        lower = "0" + lower
-    return higher + "." + lower

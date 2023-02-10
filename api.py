@@ -79,6 +79,21 @@ class Buy:
                 }
 
 
+class Pay:
+    def __init__(self, room_id: str, sender_id: str, receiver_id: str, value: int):
+        self.room_id = room_id
+        self.sender_id = sender_id
+        self.receiver_id = receiver_id
+        self.value = value
+
+    def to_json(self) -> dict:
+        return {"roomId": self.room_id,
+                "userSetterId": self.sender_id,
+                "userGetterId": self.receiver_id,
+                "value": self.value
+                }
+
+
 def create_room(
         room_name: str,
         room_password: str,
@@ -114,6 +129,18 @@ def buy(room_id: str, user_id: int, members_id: [str], cost: int) -> dict:
         print(f"[BUY] Sent request({buy_json}). \n[BUY] Response: {response}")
     except Exception as e:
         response = {"errors": [{"message": str(e)}]}
+
+    return response
+
+
+def pay(room_id: str, sender_id: int, receiver_id: str, value: int) -> dict:
+    pay_json = Pay(room_id, str(sender_id), receiver_id, value).to_json()
+    try:
+        response = send_mutation_request("payMoney", "PayMoneyInput!", "roomId", pay_json)
+        print(f"[PAY] Sent request({pay_json}). \n[PAY] Response: {response}")
+    except Exception as e:
+        response = {"errors": [{"message": str(e)}]}
+
     return response
 
 
