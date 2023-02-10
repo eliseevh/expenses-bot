@@ -1,5 +1,3 @@
-from telebot import types
-
 import api
 import runtime_constants
 
@@ -24,15 +22,11 @@ class CreateRoom:
 
     def get_user_name_in_room(self, message):
         self.user_name = message.text
-        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-        button_yes = types.KeyboardButton("Да")
-        button_no = types.KeyboardButton("Нет")
-        markup.add(button_yes, button_no)
         self.bot.send_message(message.from_user.id,
                               f"Вы действительно хотите создать комнату "
-                              f"{self.room_name} с паролем {self.user_name} "
+                              f"{self.room_name} с паролем {self.room_password} "
                               f"и именем {self.user_name}?",
-                              reply_markup=markup
+                              reply_markup=runtime_constants.YES_NO_MARKUP
                               )
 
         self.bot.register_next_step_handler(message, self.finish)
@@ -41,10 +35,11 @@ class CreateRoom:
         if message.text == "Да":
             result = api.create_room(self.room_name, self.room_password, message.from_user.id, self.user_name)
             if 'errors' in result:
+                print("[CREATE_ROOM] [!ERROR!]", result['errors'])
                 errors = "\n".join(map(lambda err: err['message'], result['errors']))
-                self.bot.send_message(message.from_user.id, f"При попытке создать комнату возникили ошибки:\n{errors}")
+                self.bot.send_message(message.from_user.id, f"При попытке создать комнату возникли ошибки:\n{errors}")
             else:
                 room_id = result['data']['createRoom']['roomId']
                 self.bot.send_message(message.from_user.id, f"Комната создана успешно! id для входа: {room_id}")
-        self.bot.send_message(message.from_user.id, "Выберите действие:", reply_markup=runtime_constants.START_MSG)
+        self.bot.send_message(message.from_user.id, "Выбери действие:", reply_markup=runtime_constants.START_MSG)
         del self
