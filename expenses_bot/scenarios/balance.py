@@ -1,6 +1,6 @@
 import expenses_bot.api
 import expenses_bot.runtime_constants
-from expenses_bot.utils import show_money
+from expenses_bot.utils import show_money, check_cancel, send_action_keyboard
 
 
 class Balance:
@@ -10,6 +10,9 @@ class Balance:
         self.start = self.get_balance
 
     def get_balance(self, message):
+        if check_cancel(self.bot, message):
+            del self
+            return
         self.room_id = message.text.split("id")[-1]
         room = expenses_bot.api.get_room(self.room_id)
         if 'errors' in room:
@@ -25,5 +28,5 @@ class Balance:
                         f"Вы должны {show_money(balance)}")
                     self.bot.send_message(message.from_user.id,
                                           f"Ваш баланс: {text}({description})")
-        self.bot.send_message(message.from_user.id, "Выбери действие:",
-                              reply_markup=expenses_bot.runtime_constants.START_MSG)
+        send_action_keyboard(self.bot, message.from_user.id)
+        del self

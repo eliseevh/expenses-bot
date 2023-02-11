@@ -2,7 +2,8 @@ from telebot import types
 
 import expenses_bot.api
 import expenses_bot.runtime_constants
-from expenses_bot.utils import show_money
+from expenses_bot import runtime_constants
+from expenses_bot.utils import show_money, check_cancel, send_action_keyboard
 
 
 class Pay:
@@ -15,13 +16,15 @@ class Pay:
         self.start = self.get_room_id
 
     def get_room_id(self, message):
+        if check_cancel(self.bot, message):
+            del self
+            return
         self.room_id = message.text.split("id")[-1]
         room = expenses_bot.api.get_room(self.room_id)
         if 'errors' in room:
             self.bot.send_message(message.from_user.id,
                                   "Произошла ошибка. К сожалению, в данный момент вы не можете сообщить о переводе")
-            self.bot.send_message(message.from_user.id, "Выбери действие:",
-                                  reply_markup=expenses_bot.runtime_constants.START_MSG)
+            send_action_keyboard(self.bot, message.from_user.id)
         else:
             self.room_members = room['data']['getRoom']['members']
             if len(self.room_members) == 1:
@@ -31,11 +34,15 @@ class Pay:
             for member in self.room_members:
                 if member['id'] != str(message.from_user.id):
                     markup.add(types.KeyboardButton(member['name']))
+            markup.add(runtime_constants.BUTTON_CANCEL)
             self.bot.send_message(message.from_user.id, "Выбери человека, которому ты перевёл деньги:",
                                   reply_markup=markup)
             self.bot.register_next_step_handler(message, self.get_user_id)
 
     def get_user_id(self, message):
+        if check_cancel(self.bot, message):
+            del self
+            return
         for room_member in self.room_members:
             if room_member['name'] == message.text:
                 if room_member['id'] == str(message.from_user.id):
@@ -50,6 +57,9 @@ class Pay:
         self.bot.register_next_step_handler(message, self.get_user_id)
 
     def get_value(self, message):
+        if check_cancel(self.bot, message):
+            del self
+            return
         split = message.text.split('.')
         if len(split) > 2:
             self.bot.send_message(message.from_user.id,
@@ -85,6 +95,9 @@ class Pay:
         self.bot.register_next_step_handler(message, self.finish)
 
     def finish(self, message):
+        if check_cancel(self.bot, message):
+            del self
+            return
         if message.text == "Да":
             print(
                 f"[PAY] Pay info: room_id: {self.room_id}, "
@@ -104,6 +117,5 @@ class Pay:
                         break
                 self.bot.send_message(int(self.user['id']),
                                       f"Пользователь {sender_name} перевел вам {show_money(self.value)}руб.")
-        self.bot.send_message(message.from_user.id, "Выбери действие:",
-                              reply_markup=expenses_bot.runtime_constants.START_MSG)
+        send_action_keyboard(self.bot, message.from_user.id)
         del self

@@ -1,6 +1,6 @@
 import expenses_bot.api
 import expenses_bot.runtime_constants
-from expenses_bot.utils import show_money
+from expenses_bot.utils import show_money, check_cancel, send_action_keyboard
 
 
 class Debts:
@@ -10,6 +10,9 @@ class Debts:
         self.start = self.get_debts
 
     def get_debts(self, message):
+        if check_cancel(self.bot, message):
+            del self
+            return
         self.room_id = message.text.split("id")[-1]
         room = expenses_bot.api.get_room(self.room_id)
         if 'errors' in room:
@@ -19,20 +22,20 @@ class Debts:
         else:
             members = room['data']['getRoom']['members']
             user = list(filter(lambda member: member['id'] == str(message.from_user.id), members))[0]
-            if user['debit'] < 0:
-                members.sort(key=lambda x: x['debit'], reverse=True)
+            if user['debit'] > 0:
+                members.sort(key=lambda x: x['debit'])
                 current = user['debit']
                 result = []
                 for member in members:
-                    if member['debit'] + current < 0:
-                        result.append((member['name'], member['debit']))
+                    if member['debit'] + current > 0:
+                        result.append((member['name'], -member['debit']))
                         current += member['debit']
                     else:
-                        result.append((member['name'], -current))
+                        result.append((member['name'], current))
                         break
                 text = "\n".join(map(lambda member: f"{member[0]}: {show_money(member[1])}", result))
                 self.bot.send_message(message.from_user.id, f"Вы должны заплатить:\n{text}")
             else:
                 self.bot.send_message(message.from_user.id, "Вы никому не должны ничего платить")
-        self.bot.send_message(message.from_user.id, "Выбери действие:",
-                              reply_markup=expenses_bot.runtime_constants.START_MSG)
+        send_action_keyboard(self.bot, message.from_user.id)
+        del self

@@ -1,5 +1,6 @@
 import expenses_bot.api
 import expenses_bot.runtime_constants
+from expenses_bot.utils import check_cancel, send_action_keyboard
 
 
 class CreateRoom:
@@ -11,16 +12,25 @@ class CreateRoom:
         self.user_name = ""
 
     def get_room_name(self, message):
+        if check_cancel(self.bot, message):
+            del self
+            return
         self.room_name = message.text
         self.bot.send_message(message.from_user.id, "Введи пароль для комнаты")
         self.bot.register_next_step_handler(message, self.get_room_password)
 
     def get_room_password(self, message):
+        if check_cancel(self.bot, message):
+            del self
+            return
         self.room_password = message.text
         self.bot.send_message(message.from_user.id, "Введи своё имя")
         self.bot.register_next_step_handler(message, self.get_user_name_in_room)
 
     def get_user_name_in_room(self, message):
+        if check_cancel(self.bot, message):
+            del self
+            return
         self.user_name = message.text
         self.bot.send_message(message.from_user.id,
                               f"Вы действительно хотите создать комнату "
@@ -32,6 +42,9 @@ class CreateRoom:
         self.bot.register_next_step_handler(message, self.finish)
 
     def finish(self, message):
+        if check_cancel(self.bot, message):
+            del self
+            return
         if message.text == "Да":
             result = expenses_bot.api.create_room(self.room_name, self.room_password, message.from_user.id,
                                                   self.user_name)
@@ -42,6 +55,5 @@ class CreateRoom:
             else:
                 room_id = result['data']['createRoom']['roomId']
                 self.bot.send_message(message.from_user.id, f"Комната создана успешно! id для входа: {room_id}")
-        self.bot.send_message(message.from_user.id, "Выбери действие:",
-                              reply_markup=expenses_bot.runtime_constants.START_MSG)
+        send_action_keyboard(self.bot, message.from_user.id)
         del self
