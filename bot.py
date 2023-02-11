@@ -4,6 +4,7 @@ from telebot import types
 import api
 import private_constants
 import runtime_constants
+from balance import Balance
 from create_room import CreateRoom
 from sign_in_room import SignInRoom
 from buy import Buy
@@ -59,6 +60,21 @@ def callback_handler(callback):
                 markup.add(types.KeyboardButton(room))
             bot.send_message(callback.from_user.id, "Выбери комнату:", reply_markup=markup)
         bot.register_next_step_handler_by_chat_id(callback.from_user.id, Pay(bot).start)
+    elif callback.data == runtime_constants.BUTTON_BALANCE.callback_data:
+        rooms = get_rooms(callback.from_user.id)
+        if rooms == "Error":
+            bot.send_message(callback.from_user.id,
+                             "Не получилось узнать список ваших комнат. К сожалению, "
+                             "в данный момент вы не можете узнать свой баланс"
+                             )
+            bot.send_message(callback.from_user.id, "Выбери действие:", reply_markup=runtime_constants.START_MSG)
+            return
+        else:
+            markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+            for room in rooms:
+                markup.add(types.KeyboardButton(room))
+            bot.send_message(callback.from_user.id, "Выбери комнату:", reply_markup=markup)
+        bot.register_next_step_handler_by_chat_id(callback.from_user.id, Balance(bot).start)
 
 
 @bot.message_handler(content_types=["text"])

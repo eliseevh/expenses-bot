@@ -157,7 +157,7 @@ def get_user_rooms(user_id: int) -> dict:
 
 def get_room(room_id: str) -> dict:
     try:
-        response = send_query_request("getRoom", "ID!", "roomId", "roomName, members {id, name}", room_id)
+        response = send_query_request("getRoom", "ID!", "roomId", "roomName, members {id, name, debit}", room_id)
         print(f"[GET_ROOM] Sent request({room_id}). \n[GET_ROOM] Response: {response}")
     except Exception as e:
         response = {"errors": [{"message": str(e)}]}
