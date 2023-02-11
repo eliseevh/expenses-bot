@@ -20,9 +20,9 @@ class Balance:
                 if member['id'] == str(message.from_user.id):
                     balance = member['debit']
                     text = show_money(balance) + "руб."
-                    description = f"Вам должны {text}" if member['debit'] > 0 else (
+                    description = f"Вам должны {show_money(-balance)}" if member['debit'] < 0 else (
                         "Вы ничего не должны и вам ничего не должны" if balance == 0 else
-                        f"Вы должны {show_money(-balance)}")
+                        f"Вы должны {show_money(balance)}")
                     self.bot.send_message(message.from_user.id,
                                           f"Ваш баланс: {text}({description})")
         self.bot.send_message(message.from_user.id, "Выбери действие:", reply_markup=runtime_constants.START_MSG)
