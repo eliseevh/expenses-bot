@@ -12,7 +12,7 @@ from expenses_bot.scenarios.pay import Pay
 from expenses_bot.scenarios.sign_in_room import SignInRoom
 from expenses_bot.utils import send_action_keyboard
 
-bot = telebot.TeleBot(private_constants.TOKEN)
+bot = telebot.TeleBot(private_constants.TOKEN, suppress_middleware_excepions=True)
 
 
 def get_rooms(user_id: int) -> [str]:
@@ -104,4 +104,9 @@ def get_text_messages(message):
 
 
 if __name__ == "__main__":
-    bot.polling(non_stop=False)
+    while True:
+        try:
+            bot.polling(non_stop=False)
+        except Exception as e:
+            print("[MAIN LOOP] [!ERROR!]", e)
+            print("Restarting bot")

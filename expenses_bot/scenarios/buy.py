@@ -2,7 +2,7 @@ from telebot import types
 
 import expenses_bot.api
 import expenses_bot.runtime_constants
-from expenses_bot import runtime_constants
+from expenses_bot import runtime_constants, private_constants
 from expenses_bot.utils import show_money, check_cancel, send_action_keyboard
 
 
@@ -125,6 +125,8 @@ class Buy:
                 self.bot.send_message(message.from_user.id,
                                       f"При попытке сообщить о покупке возникли ошибки:\n{errors}")
             else:
+                if 'extensions' in result and result['extensions'] == "error on saving log":
+                    self.bot.send_message(private_constants.OWNER_TELEGRAM_ID, "ERROR ON SAVING LOG:\n" + str(result))
                 self.bot.send_message(message.from_user.id, "Информация о покупке успешно добавлена")
                 buyer_name = "Неизвестен"
                 for member in self.room_members:
@@ -132,10 +134,14 @@ class Buy:
                         buyer_name = member['name']
                         break
                 for member in self.members:
-                    self.bot.send_message(int(member['id']),
-                                          f"Пользователь {buyer_name} купил {self.name} "
-                                          f"за {show_money(self.cost)}руб. и "
-                                          f"разделил эту покупку между собой, вами и ещё {len(self.members) - 1} людьми"
-                                          )
+                    try:
+                        self.bot.send_message(int(member['id']),
+                                              f"Пользователь {buyer_name} купил {self.name} "
+                                              f"за {show_money(self.cost)}руб. и "
+                                              f"разделил эту покупку между собой, вами и ещё "
+                                              f"{len(self.members) - 1} людьми"
+                                              )
+                    except Exception as e:
+                        print("[BUY] [!ERROR!]", e)
         send_action_keyboard(self.bot, message.from_user.id)
         del self

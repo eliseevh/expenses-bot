@@ -2,7 +2,7 @@ from telebot import types
 
 import expenses_bot.api
 import expenses_bot.runtime_constants
-from expenses_bot import runtime_constants
+from expenses_bot import runtime_constants, private_constants
 from expenses_bot.utils import show_money, check_cancel, send_action_keyboard
 
 
@@ -109,13 +109,19 @@ class Pay:
                 self.bot.send_message(message.from_user.id,
                                       f"При попытке сообщить о переводе возникли ошибки:\n{errors}")
             else:
+                if 'extensions' in result and result['extensions'] == "error on saving log":
+                    self.bot.send_message(private_constants.OWNER_TELEGRAM_ID, "ERROR ON SAVING LOG:\n" + str(result))
+
                 self.bot.send_message(message.from_user.id, "Информация о переводе успешно добавлена")
                 sender_name = "Неизвестен"
                 for member in self.room_members:
                     if member['id'] == str(message.from_user.id):
                         sender_name = member['name']
                         break
-                self.bot.send_message(int(self.user['id']),
-                                      f"Пользователь {sender_name} перевел вам {show_money(self.value)}руб.")
+                try:
+                    self.bot.send_message(int(self.user['id']),
+                                          f"Пользователь {sender_name} перевел вам {show_money(self.value)}руб.")
+                except Exception as e:
+                    print("[PAY] [!ERROR!]", e)
         send_action_keyboard(self.bot, message.from_user.id)
         del self
