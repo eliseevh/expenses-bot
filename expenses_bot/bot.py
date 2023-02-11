@@ -4,12 +4,12 @@ from telebot import types
 import api
 import private_constants
 import runtime_constants
-from balance import Balance
-from create_room import CreateRoom
-from debts import Debts
-from sign_in_room import SignInRoom
-from buy import Buy
-from pay import Pay
+from expenses_bot.scenarios.balance import Balance
+from expenses_bot.scenarios.buy import Buy
+from expenses_bot.scenarios.create_room import CreateRoom
+from expenses_bot.scenarios.debts import Debts
+from expenses_bot.scenarios.pay import Pay
+from expenses_bot.scenarios.sign_in_room import SignInRoom
 
 bot = telebot.TeleBot(private_constants.TOKEN)
 

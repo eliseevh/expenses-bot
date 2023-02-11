@@ -1,6 +1,6 @@
-import api
-import runtime_constants
-from utils import show_money
+import expenses_bot.api
+import expenses_bot.runtime_constants
+from expenses_bot.utils import show_money
 
 
 class Debts:
@@ -11,7 +11,7 @@ class Debts:
 
     def get_debts(self, message):
         self.room_id = message.text.split("id")[-1]
-        room = api.get_room(self.room_id)
+        room = expenses_bot.api.get_room(self.room_id)
         if 'errors' in room:
             self.bot.send_message(message.from_user.id,
                                   "Произошла ошибка. К сожалению, в данный момент вы "
@@ -34,4 +34,5 @@ class Debts:
                 self.bot.send_message(message.from_user.id, f"Вы должны заплатить:\n{text}")
             else:
                 self.bot.send_message(message.from_user.id, "Вы никому не должны ничего платить")
-        self.bot.send_message(message.from_user.id, "Выбери действие:", reply_markup=runtime_constants.START_MSG)
+        self.bot.send_message(message.from_user.id, "Выбери действие:",
+                              reply_markup=expenses_bot.runtime_constants.START_MSG)

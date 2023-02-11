@@ -1,8 +1,8 @@
-import api
-import runtime_constants
 from telebot import types
 
-from utils import show_money
+import expenses_bot.api
+import expenses_bot.runtime_constants
+from expenses_bot.utils import show_money
 
 
 class Pay:
@@ -16,11 +16,12 @@ class Pay:
 
     def get_room_id(self, message):
         self.room_id = message.text.split("id")[-1]
-        room = api.get_room(self.room_id)
+        room = expenses_bot.api.get_room(self.room_id)
         if 'errors' in room:
             self.bot.send_message(message.from_user.id,
                                   "Произошла ошибка. К сожалению, в данный момент вы не можете сообщить о переводе")
-            self.bot.send_message(message.from_user.id, "Выбери действие:", reply_markup=runtime_constants.START_MSG)
+            self.bot.send_message(message.from_user.id, "Выбери действие:",
+                                  reply_markup=expenses_bot.runtime_constants.START_MSG)
         else:
             self.room_members = room['data']['getRoom']['members']
             if len(self.room_members) == 1:
@@ -80,7 +81,7 @@ class Pay:
         self.bot.send_message(message.from_user.id,
                               f"Вы действительно хотите сообщить о переводе "
                               f"{show_money(self.value)}руб. пользователю {self.user['name']}?",
-                              reply_markup=runtime_constants.YES_NO_MARKUP)
+                              reply_markup=expenses_bot.runtime_constants.YES_NO_MARKUP)
         self.bot.register_next_step_handler(message, self.finish)
 
     def finish(self, message):
@@ -88,7 +89,7 @@ class Pay:
             print(
                 f"[PAY] Pay info: room_id: {self.room_id}, "
                 f"sender_id: {message.from_user.id}, receiver_id: {self.user['id']}, value: {self.value}")
-            result = api.pay(self.room_id, message.from_user.id, self.user['id'], self.value)
+            result = expenses_bot.api.pay(self.room_id, message.from_user.id, self.user['id'], self.value)
             if 'errors' in result:
                 print("[PAY] [!ERROR!]", result['errors'])
                 errors = "\n".join(map(lambda err: err['message'], result['errors']))
@@ -103,5 +104,6 @@ class Pay:
                         break
                 self.bot.send_message(int(self.user['id']),
                                       f"Пользователь {sender_name} перевел вам {show_money(self.value)}руб.")
-        self.bot.send_message(message.from_user.id, "Выбери действие:", reply_markup=runtime_constants.START_MSG)
+        self.bot.send_message(message.from_user.id, "Выбери действие:",
+                              reply_markup=expenses_bot.runtime_constants.START_MSG)
         del self

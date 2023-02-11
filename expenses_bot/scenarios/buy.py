@@ -1,8 +1,8 @@
-import api
-import runtime_constants
 from telebot import types
 
-from utils import show_money
+import expenses_bot.api
+import expenses_bot.runtime_constants
+from expenses_bot.utils import show_money
 
 
 class Buy:
@@ -17,11 +17,12 @@ class Buy:
 
     def get_room_id(self, message):
         self.room_id = message.text.split("id")[-1]
-        room = api.get_room(self.room_id)
+        room = expenses_bot.api.get_room(self.room_id)
         if 'errors' in room:
             self.bot.send_message(message.from_user.id,
                                   "Произошла ошибка. К сожалению, в данный момент вы не можете сообщить о покупке")
-            self.bot.send_message(message.from_user.id, "Выбери действие:", reply_markup=runtime_constants.START_MSG)
+            self.bot.send_message(message.from_user.id, "Выбери действие:",
+                                  reply_markup=expenses_bot.runtime_constants.START_MSG)
         else:
             self.room_members = room['data']['getRoom']['members']
             markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
@@ -84,7 +85,7 @@ class Buy:
             self.bot.send_message(message.from_user.id,
                                   f"Вы действительно хотите сообщить о покупке {self.name}"
                                   f" за {show_money(self.cost)}руб., разделенной между {users} и вами?",
-                                  reply_markup=runtime_constants.YES_NO_MARKUP
+                                  reply_markup=expenses_bot.runtime_constants.YES_NO_MARKUP
                                   )
             self.bot.register_next_step_handler(message, self.finish)
         except ValueError as _:
@@ -98,9 +99,10 @@ class Buy:
             print(
                 f"[BUY] Buy info: user_id: {message.from_user.id}, "
                 f"members: {self.members}, name: {self.name}, cost: {self.cost}")
-            result = api.buy(self.room_id, message.from_user.id,
-                             list(map(lambda member: member['id'], self.members)) + [str(message.from_user.id)],
-                             self.cost)
+            result = expenses_bot.api.buy(self.room_id, message.from_user.id,
+                                          list(map(lambda member: member['id'], self.members)) + [
+                                              str(message.from_user.id)],
+                                          self.cost)
             if 'errors' in result:
                 print("[BUY] [!ERROR!]", result['errors'])
                 errors = "\n".join(map(lambda err: err['message'], result['errors']))
@@ -120,5 +122,6 @@ class Buy:
                                           f"разделил эту покупку между собой, вами и ещё {len(self.members) - 1} людьми"
                                           )
 
-        self.bot.send_message(message.from_user.id, "Выбери действие:", reply_markup=runtime_constants.START_MSG)
+        self.bot.send_message(message.from_user.id, "Выбери действие:",
+                              reply_markup=expenses_bot.runtime_constants.START_MSG)
         del self

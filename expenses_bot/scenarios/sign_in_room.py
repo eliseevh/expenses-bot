@@ -1,5 +1,5 @@
-import api
-import runtime_constants
+import expenses_bot.api
+import expenses_bot.runtime_constants
 
 
 class SignInRoom:
@@ -22,12 +22,13 @@ class SignInRoom:
 
     def get_user_name(self, message):
         self.user_name = message.text
-        result = api.sign_in_room(self.room_id, self.room_password, message.from_user.id, self.user_name)
+        result = expenses_bot.api.sign_in_room(self.room_id, self.room_password, message.from_user.id, self.user_name)
         if 'errors' in result:
             print("[SIGN_IN_ROOM] [!ERROR!]", result['errors'])
             errors = "\n".join(map(lambda err: err['message'], result['errors']))
             self.bot.send_message(message.from_user.id, f"Не удалось присоединиться к комнате:\n{errors}")
         else:
             self.bot.send_message(message.from_user.id, f"Вы успешно присоединились к комнате!")
-        self.bot.send_message(message.from_user.id, "Выбери действие:", reply_markup=runtime_constants.START_MSG)
+        self.bot.send_message(message.from_user.id, "Выбери действие:",
+                              reply_markup=expenses_bot.runtime_constants.START_MSG)
         del self
