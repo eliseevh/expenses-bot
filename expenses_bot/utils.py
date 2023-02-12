@@ -1,5 +1,3 @@
-from telebot import types
-
 from expenses_bot import runtime_constants
 
 
@@ -24,6 +22,4 @@ def check_cancel(bot, message):
 
 
 def send_action_keyboard(bot, user_id):
-    message_id = bot.send_message(user_id, "Удаляю клавиатуру", reply_markup=types.ReplyKeyboardRemove()).id
-    bot.delete_message(user_id, message_id)
     bot.send_message(user_id, "Выбери действие:", reply_markup=runtime_constants.ACTION_MARKUP)
