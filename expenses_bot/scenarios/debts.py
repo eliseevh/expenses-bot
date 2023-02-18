@@ -1,15 +1,18 @@
+import telebot
+from telebot import types
+
 import expenses_bot.api
 import expenses_bot.runtime_constants
 from expenses_bot.utils import show_money, check_cancel, send_action_keyboard
 
 
 class Debts:
-    def __init__(self, bot):
+    def __init__(self, bot: telebot.TeleBot) -> None:
         self.bot = bot
         self.room_id = ""
         self.start = self.get_debts
 
-    def get_debts(self, message):
+    def get_debts(self, message: types.Message) -> None:
         if check_cancel(self.bot, message):
             del self
             return

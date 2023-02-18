@@ -1,17 +1,20 @@
+import telebot
+from telebot import types
+
 import expenses_bot.api
 import expenses_bot.runtime_constants
 from expenses_bot.utils import check_cancel, send_action_keyboard
 
 
 class CreateRoom:
-    def __init__(self, bot):
+    def __init__(self, bot: telebot.TeleBot) -> None:
         self.bot = bot
         self.start = self.get_room_name
         self.room_name = ""
         self.room_password = ""
         self.user_name = ""
 
-    def get_room_name(self, message):
+    def get_room_name(self, message: types.Message) -> None:
         if check_cancel(self.bot, message):
             del self
             return
@@ -19,15 +22,15 @@ class CreateRoom:
         self.bot.send_message(message.from_user.id, "Введи пароль для комнаты")
         self.bot.register_next_step_handler(message, self.get_room_password)
 
-    def get_room_password(self, message):
+    def get_room_password(self, message: types.Message) -> None:
         if check_cancel(self.bot, message):
             del self
             return
         self.room_password = message.text
         self.bot.send_message(message.from_user.id, "Введи своё имя")
-        self.bot.register_next_step_handler(message, self.get_user_name_in_room)
+        self.bot.register_next_step_handler(message, self.get_user_name)
 
-    def get_user_name_in_room(self, message):
+    def get_user_name(self, message: types.Message) -> None:
         if check_cancel(self.bot, message):
             del self
             return
@@ -41,7 +44,7 @@ class CreateRoom:
 
         self.bot.register_next_step_handler(message, self.finish)
 
-    def finish(self, message):
+    def finish(self, message: types.Message) -> None:
         if check_cancel(self.bot, message):
             del self
             return

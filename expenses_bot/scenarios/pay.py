@@ -1,3 +1,4 @@
+import telebot
 from telebot import types
 
 import expenses_bot.api
@@ -7,7 +8,7 @@ from expenses_bot.utils import show_money, check_cancel, send_action_keyboard
 
 
 class Pay:
-    def __init__(self, bot):
+    def __init__(self, bot: telebot.TeleBot) -> None:
         self.bot = bot
         self.room_id = ""
         self.room_members = []
@@ -15,7 +16,7 @@ class Pay:
         self.value = 0
         self.start = self.get_room_id
 
-    def get_room_id(self, message):
+    def get_room_id(self, message: types.Message) -> None:
         if check_cancel(self.bot, message):
             del self
             return
@@ -39,7 +40,7 @@ class Pay:
                                   reply_markup=markup)
             self.bot.register_next_step_handler(message, self.get_user_id)
 
-    def get_user_id(self, message):
+    def get_user_id(self, message: types.Message) -> None:
         if check_cancel(self.bot, message):
             del self
             return
@@ -56,7 +57,7 @@ class Pay:
         self.bot.send_message(message.from_user.id, f"В комнате нет человека с именем \"{message.text}\"")
         self.bot.register_next_step_handler(message, self.get_user_id)
 
-    def get_value(self, message):
+    def get_value(self, message: types.Message) -> None:
         if check_cancel(self.bot, message):
             del self
             return
@@ -73,8 +74,10 @@ class Pay:
                                           "Неверный формат. Сумма указывается так: 2000, или так: 923.53")
                     self.bot.register_next_step_handler(message, self.get_value)
                     return
-
-                value = int(split[0]) * 100 + int(split[1])
+                elif len(split[1]) == 2:
+                    value = int(split[0]) * 100 + int(split[1])
+                else:
+                    value = int(split[0]) * 100 + int(split[1]) * 10
             elif len(split) == 1:
                 value = int(split[0]) * 100
             else:
@@ -94,7 +97,7 @@ class Pay:
                               reply_markup=expenses_bot.runtime_constants.YES_NO_MARKUP)
         self.bot.register_next_step_handler(message, self.finish)
 
-    def finish(self, message):
+    def finish(self, message: types.Message) -> None:
         if check_cancel(self.bot, message):
             del self
             return

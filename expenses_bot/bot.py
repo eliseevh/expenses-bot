@@ -1,3 +1,5 @@
+from typing import Callable
+
 import telebot
 from telebot import types
 
@@ -15,6 +17,21 @@ from expenses_bot.utils import send_action_keyboard
 bot = telebot.TeleBot(private_constants.TOKEN, suppress_middleware_excepions=True)
 
 
+def send_rooms_keyboard(user_id: int, action_name: str, next_message_handler: Callable) -> None:
+    rooms = get_rooms(user_id)
+    if rooms == "Error":
+        bot.send_message(user_id, "Не получилось узнать список ваших комнат. К сожалению, "
+                                  "в данный момент вы не можете " + action_name)
+        send_action_keyboard(bot, user_id)
+    else:
+        markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+        for room in rooms:
+            markup.add(types.KeyboardButton(room))
+        markup.add(runtime_constants.BUTTON_CANCEL)
+        bot.send_message(user_id, "Выбери комнату:", reply_markup=markup)
+        bot.register_next_step_handler_by_chat_id(user_id, next_message_handler)
+
+
 def get_rooms(user_id: int) -> [str]:
     result = api.get_user_rooms(user_id)
     if 'errors' in result:
@@ -25,7 +42,7 @@ def get_rooms(user_id: int) -> [str]:
 
 
 @bot.message_handler(content_types=["text"])
-def get_text_messages(message):
+def get_text_messages(message: types.Message) -> None:
     if message.text == runtime_constants.BUTTON_CREATE_ROOM.text:
         bot.send_message(message.from_user.id, "Введи название комнаты:", reply_markup=runtime_constants.CANCEL_MARKUP)
         bot.register_next_step_handler(message, CreateRoom(bot).start)
@@ -33,69 +50,23 @@ def get_text_messages(message):
         bot.send_message(message.from_user.id, "Введи id комнаты:", reply_markup=runtime_constants.CANCEL_MARKUP)
         bot.register_next_step_handler(message, SignInRoom(bot).start)
     elif message.text == runtime_constants.BUTTON_BUY.text:
-        rooms = get_rooms(message.from_user.id)
-        if rooms == "Error":
-            bot.send_message(message.from_user.id,
-                             "Не получилось узнать список ваших комнат. К сожалению, "
-                             "в данный момент вы не можете сообщить о покупке"
-                             )
-            send_action_keyboard(bot, message.from_user.id)
-            return
-        else:
-            markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-            for room in rooms:
-                markup.add(types.KeyboardButton(room))
-            markup.add(runtime_constants.BUTTON_CANCEL)
-            bot.send_message(message.from_user.id, "Выбери комнату:", reply_markup=markup)
-        bot.register_next_step_handler(message, Buy(bot).start)
+        send_rooms_keyboard(message.from_user.id,
+                            "сообщить о покупке",
+                            Buy(bot).start
+                            )
     elif message.text == runtime_constants.BUTTON_PAY.text:
-        rooms = get_rooms(message.from_user.id)
-        if rooms == "Error":
-            bot.send_message(message.from_user.id,
-                             "Не получилось узнать список ваших комнат. К сожалению, "
-                             "в данный момент вы не можете сообщить о переводе"
-                             )
-            send_action_keyboard(bot, message.from_user.id)
-            return
-        else:
-            markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-            for room in rooms:
-                markup.add(types.KeyboardButton(room))
-            markup.add(runtime_constants.BUTTON_CANCEL)
-            bot.send_message(message.from_user.id, "Выбери комнату:", reply_markup=markup)
-        bot.register_next_step_handler(message, Pay(bot).start)
+        send_rooms_keyboard(message.from_user.id,
+                            "сообщить о переводе",
+                            Pay(bot).start
+                            )
     elif message.text == runtime_constants.BUTTON_BALANCE.text:
-        rooms = get_rooms(message.from_user.id)
-        if rooms == "Error":
-            bot.send_message(message.from_user.id,
-                             "Не получилось узнать список ваших комнат. К сожалению, "
-                             "в данный момент вы не можете узнать свой баланс"
-                             )
-            send_action_keyboard(bot, message.from_user.id)
-            return
-        else:
-            markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-            for room in rooms:
-                markup.add(types.KeyboardButton(room))
-            markup.add(runtime_constants.BUTTON_CANCEL)
-            bot.send_message(message.from_user.id, "Выбери комнату:", reply_markup=markup)
-        bot.register_next_step_handler(message, Balance(bot).start)
+        send_rooms_keyboard(message.from_user.id,
+                            "узнать свой баланс",
+                            Balance(bot).start)
     elif message.text == runtime_constants.BUTTON_DEBTS.text:
-        rooms = get_rooms(message.from_user.id)
-        if rooms == "Error":
-            bot.send_message(message.from_user.id,
-                             "Не получилось узнать список ваших комнат. К сожалению, "
-                             "в данный момент вы не можете узнать кому вы должны перевести деньги"
-                             )
-            send_action_keyboard(bot, message.from_user.id)
-            return
-        else:
-            markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-            for room in rooms:
-                markup.add(types.KeyboardButton(room))
-            markup.add(runtime_constants.BUTTON_CANCEL)
-            bot.send_message(message.from_user.id, "Выбери комнату:", reply_markup=markup)
-        bot.register_next_step_handler_by_chat_id(message.from_user.id, Debts(bot).start)
+        send_rooms_keyboard(message.from_user.id,
+                            "узнать кому вы должны перевести деньги",
+                            Debts(bot).start)
     else:
         bot.send_message(message.from_user.id, "Неизвестная команда")
         send_action_keyboard(bot, message.from_user.id)
@@ -104,7 +75,7 @@ def get_text_messages(message):
 if __name__ == "__main__":
     while True:
         try:
-            bot.polling(non_stop=False)
+            bot.polling()
         except Exception as e:
             print("[MAIN LOOP] [!ERROR!]", e)
             print("Restarting bot")

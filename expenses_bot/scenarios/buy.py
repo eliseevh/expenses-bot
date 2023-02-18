@@ -1,3 +1,4 @@
+import telebot
 from telebot import types
 
 import expenses_bot.api
@@ -7,7 +8,7 @@ from expenses_bot.utils import show_money, check_cancel, send_action_keyboard
 
 
 class Buy:
-    def __init__(self, bot):
+    def __init__(self, bot: telebot.TeleBot) -> None:
         self.bot = bot
         self.room_id = ""
         self.room_members = []
@@ -16,7 +17,7 @@ class Buy:
         self.cost = 0
         self.start = self.get_room_id
 
-    def get_room_id(self, message):
+    def get_room_id(self, message: types.Message) -> None:
         if check_cancel(self.bot, message):
             del self
             return
@@ -38,7 +39,7 @@ class Buy:
                                   reply_markup=markup)
             self.bot.register_next_step_handler(message, self.get_members)
 
-    def get_members(self, message):
+    def get_members(self, message: types.Message) -> None:
         if check_cancel(self.bot, message):
             del self
             return
@@ -59,7 +60,7 @@ class Buy:
         self.bot.send_message(message.from_user.id, f"В комнате нет человека с именем \"{message.text}\"")
         self.bot.register_next_step_handler(message, self.get_members)
 
-    def get_name(self, message):
+    def get_name(self, message: types.Message) -> None:
         if check_cancel(self.bot, message):
             del self
             return
@@ -67,7 +68,7 @@ class Buy:
         self.bot.send_message(message.from_user.id, "Введи стоимость покупки:")
         self.bot.register_next_step_handler(message, self.get_cost)
 
-    def get_cost(self, message):
+    def get_cost(self, message: types.Message) -> None:
         if check_cancel(self.bot, message):
             del self
             return
@@ -84,8 +85,10 @@ class Buy:
                                           "Неверный формат. Стоимость указывается так: 200, или так: 92.53")
                     self.bot.register_next_step_handler(message, self.get_cost)
                     return
-
-                cost = int(split[0]) * 100 + int(split[1])
+                elif len(split[1]) == 2:
+                    cost = int(split[0]) * 100 + int(split[1])
+                else:
+                    cost = int(split[0]) * 100 + int(split[1]) * 10
             elif len(split) == 1:
                 cost = int(split[0]) * 100
             else:
@@ -107,7 +110,7 @@ class Buy:
             self.bot.register_next_step_handler(message, self.get_cost)
             return
 
-    def finish(self, message):
+    def finish(self, message: types.Message) -> None:
         if check_cancel(self.bot, message):
             del self
             return

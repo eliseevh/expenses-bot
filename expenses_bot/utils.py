@@ -1,3 +1,5 @@
+import telebot
+
 from expenses_bot import runtime_constants
 
 
@@ -14,12 +16,12 @@ def show_money(cost: int) -> str:
     return sign + higher + "." + lower
 
 
-def check_cancel(bot, message):
+def check_cancel(bot: telebot.TeleBot, message: telebot.types.Message) -> bool:
     if message.text == runtime_constants.BUTTON_CANCEL.text:
         send_action_keyboard(bot, message.from_user.id)
         return True
     return False
 
 
-def send_action_keyboard(bot, user_id):
+def send_action_keyboard(bot: telebot.TeleBot, user_id: int) -> None:
     bot.send_message(user_id, "Выбери действие:", reply_markup=runtime_constants.ACTION_MARKUP)

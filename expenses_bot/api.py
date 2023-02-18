@@ -21,7 +21,7 @@ def send_query_request(method: str, typename: str, arg_name: str, return_name: s
 
 
 class User:
-    def __init__(self, user_id: str, user_name: str, debit: int):
+    def __init__(self, user_id: str, user_name: str, debit: int) -> None:
         self.id = user_id
         self.name = user_name
         self.debit = debit
@@ -40,7 +40,7 @@ class Room:
                  owner_id: str,
                  owner_name: str,
                  owner_debit: int,
-                 ):
+                 ) -> None:
         self.name = room_name
         self.password = room_password
         self.members = [User(owner_id, owner_name, owner_debit)]
@@ -53,7 +53,7 @@ class Room:
 
 
 class RoomSignIn:
-    def __init__(self, room_id: str, room_password: str, user_id: str, user_name: str, user_debit: int):
+    def __init__(self, room_id: str, room_password: str, user_id: str, user_name: str, user_debit: int) -> None:
         self.id = room_id
         self.password = room_password
         self.user = User(user_id, user_name, user_debit)
@@ -66,7 +66,7 @@ class RoomSignIn:
 
 
 class Buy:
-    def __init__(self, room_id: str, user_id: str, members_id: [str], cost: int):
+    def __init__(self, room_id: str, user_id: str, members_id: [str], cost: int) -> None:
         self.room_id = room_id
         self.user_id = user_id
         self.members_id = members_id
@@ -81,7 +81,7 @@ class Buy:
 
 
 class Pay:
-    def __init__(self, room_id: str, sender_id: str, receiver_id: str, value: int):
+    def __init__(self, room_id: str, sender_id: str, receiver_id: str, value: int) -> None:
         self.room_id = room_id
         self.sender_id = sender_id
         self.receiver_id = receiver_id
