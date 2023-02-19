@@ -273,7 +273,7 @@ def buy_get_members(bot: telebot.TeleBot, message: types.Message) -> None:
             user_state.set_state(message.from_user.id, FUNCTION_NAME_TO_STATE["buy_get_name"])
         return
     with BuyStorage(private_constants.DB_NAME) as buy:
-        room_id = buy.get(message.from_user.id)[0]
+        (room_id, members, _, _) = buy.get(message.from_user.id)
         room = expenses_bot.api.get_room(room_id)
         if 'errors' in room:
             bot.send_message(message.from_user.id,
@@ -284,15 +284,28 @@ def buy_get_members(bot: telebot.TeleBot, message: types.Message) -> None:
             buy.delete(message.from_user.id)
         else:
             room_members = room['data']['getRoom']['members']
+            found = False
+            markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
+            markup.add(types.KeyboardButton("Перейти к следующему шагу"))
+
             for room_member in room_members:
                 if room_member['name'] == message.text:
                     if room_member['id'] == str(message.from_user.id):
                         bot.send_message(message.from_user.id, "Нельзя добавить себя в список")
                         return
-                    buy.add_member(message.from_user.id, int(room_member['id']))
-                    bot.send_message(message.from_user.id, f"{message.text} добавлен")
-                    return
-            bot.send_message(message.from_user.id, f"В комнате нет человека с именем \"{message.text}\"")
+                    elif int(room_member['id']) in members:
+                        bot.send_message(message.from_user.id, f"{room_member['name']} уже добавлен")
+                        return
+                    found = True
+                    break
+                elif room_member['id'] != str(message.from_user.id) and int(room_member['id']) not in members:
+                    markup.add(types.KeyboardButton(room_member['name']))
+            if found:
+                buy.add_member(message.from_user.id, int(room_member['id']))
+                bot.send_message(message.from_user.id, f"{message.text} добавлен", reply_markup=markup)
+            else:
+                bot.send_message(message.from_user.id, f"В комнате нет человека с именем \"{message.text}\"",
+                                 reply_markup=markup)
 
 
 def buy_get_name(bot: telebot.TeleBot, message: types.Message) -> None:

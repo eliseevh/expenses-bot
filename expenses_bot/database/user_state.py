@@ -10,16 +10,16 @@ class UserStateStorage(BaseStorage):
         self.connection.commit()
 
     def get_state(self, user_id: int) -> int:
-        result = self.connection\
-            .cursor()\
-            .execute("SELECT state FROM user_state WHERE user_id=?", (user_id,))\
+        result = self.connection \
+            .cursor() \
+            .execute("SELECT state FROM user_state WHERE user_id=?", (user_id,)) \
             .fetchone()
         if result is None:
             return -1
         return result[0]
 
     def set_state(self, user_id: int, new_state: int) -> None:
-        self.connection.cursor().execute("DELETE FROM user_state WHERE user_id=?", (user_id, ))
+        self.connection.cursor().execute("DELETE FROM user_state WHERE user_id=?", (user_id,))
         if new_state != -1:
             self.connection.cursor().execute("INSERT INTO user_state VALUES (?, ?)", (user_id, new_state))
         self.connection.commit()
