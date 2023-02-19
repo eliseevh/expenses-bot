@@ -65,6 +65,17 @@ class RoomSignIn:
                 }
 
 
+class RoomSignOut:
+    def __init__(self, room_id: str, user_id: str) -> None:
+        self.room_id = room_id
+        self.user_id = user_id
+
+    def to_json(self) -> dict:
+        return {"roomId": self.room_id,
+                "userId": self.user_id
+                }
+
+
 class Buy:
     def __init__(self, room_id: str, user_id: str, members_id: [str], cost: int) -> None:
         self.room_id = room_id
@@ -117,6 +128,17 @@ def sign_in_room(room_id: str, room_password: str, user_id: int, user_name: str,
     try:
         response = send_mutation_request("roomSignIn", "RoomSignInInput!", "roomId", sign_in_room_json)
         print(f"[SIGN_IN_ROOM] Sent request({sign_in_room_json}). \n[SIGN_IN_ROOM] Response: {response}")
+    except Exception as e:
+        response = {"errors": [{"message": str(e)}]}
+
+    return response
+
+
+def sign_out_room(room_id: str, user_id: int) -> dict:
+    sign_out_room_json = RoomSignOut(room_id, str(user_id)).to_json()
+    try:
+        response = send_mutation_request("roomSignOut", "RoomSignOutInput!", "roomId", sign_out_room_json)
+        print(f"[SIGN_OUT_ROOM] Sent request({sign_out_room_json}). \n[SIGN_OUT_ROOM] Response: {response}")
     except Exception as e:
         response = {"errors": [{"message": str(e)}]}
 

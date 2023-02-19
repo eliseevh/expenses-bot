@@ -29,6 +29,7 @@ FUNCTION_NAME_TO_STATE = {
     "sign_in_room_get_room_id": next_idx(),
     "sign_in_room_get_room_password": next_idx(),
     "sign_in_room_get_user_name": next_idx(),
+    "sign_out_room_get_room_id": next_idx(),
     "buy_get_room_id": next_idx(),
     "buy_get_members": next_idx(),
     "buy_get_name": next_idx(),
@@ -83,6 +84,9 @@ def start(bot: telebot.TeleBot, message: types.Message) -> None:
             user_state.set_state(message.from_user.id, FUNCTION_NAME_TO_STATE["sign_in_room_get_room_id"])
         with SignInRoomStorage(private_constants.DB_NAME) as sign_in_room:
             sign_in_room.add_user(message.from_user.id)
+    elif message.text == runtime_constants.BUTTON_SIGN_OUT_ROOM.text:
+        send_rooms_keyboard(bot, message.from_user.id, "выйти из комнаты",
+                            FUNCTION_NAME_TO_STATE["sign_out_room_get_room_id"])
     elif message.text == runtime_constants.BUTTON_BUY.text:
         send_rooms_keyboard(bot, message.from_user.id, "сообщить о покупке", FUNCTION_NAME_TO_STATE["buy_get_room_id"])
         with BuyStorage(private_constants.DB_NAME) as buy:
@@ -228,6 +232,24 @@ def sign_in_room_get_user_name(bot: telebot.TeleBot, message: types.Message) -> 
         user_state.set_state(message.from_user.id, 0)
 
 
+def sign_out_room_get_room_id(bot: telebot.TeleBot, message: types.Message) -> None:
+    if check_cancel(bot, message):
+        with UserStateStorage(private_constants.DB_NAME) as user_state:
+            user_state.set_state(message.from_user.id, 0)
+        return
+    room_id = message.text.split("id")[-1]
+    result = api.sign_out_room(room_id, message.from_user.id)
+    if 'errors' in result:
+        print("[SIGN_OUT_ROOM] [!ERROR!]", result['errors'])
+        errors = "\n".join(map(lambda err: err['message'], result['errors']))
+        bot.send_message(message.from_user.id, f"Не удалось выйти из комнаты:\n{errors}")
+    else:
+        bot.send_message(message.from_user.id, f"Вы успешно вышли из комнаты")
+    send_action_keyboard(bot, message.from_user.id)
+    with UserStateStorage(private_constants.DB_NAME) as user_state:
+        user_state.set_state(message.from_user.id, 0)
+
+
 def buy_get_room_id(bot: telebot.TeleBot, message: types.Message) -> None:
     if check_cancel(bot, message):
         with UserStateStorage(private_constants.DB_NAME) as user_state:
@@ -329,7 +351,7 @@ def buy_get_cost(bot: telebot.TeleBot, message: types.Message) -> None:
         with BuyStorage(private_constants.DB_NAME) as buy:
             buy.delete(message.from_user.id)
         return
-    split = message.text.split('.')
+    split = message.text.strip().split('.')
     if len(split) > 2:
         bot.send_message(message.from_user.id,
                          "Неверный формат. Стоимость указывается так: 200, или так: 92.53")
@@ -341,15 +363,20 @@ def buy_get_cost(bot: telebot.TeleBot, message: types.Message) -> None:
                                  "Неверный формат. Стоимость указывается так: 200, или так: 92.53")
                 return
             elif len(split[1]) == 2:
-                cost = int(split[0]) * 100 + int(split[1])
+                rub = int(split[0])
+                cop = int(split[1])
             else:
-                cost = int(split[0]) * 100 + int(split[1]) * 10
+                rub = int(split[0])
+                cop = int(split[1]) * 10
         elif len(split) == 1:
-            cost = int(split[0]) * 100
+            rub = int(split[0])
+            cop = 0
         else:
             print("[BUY] Empty telegram message")
             bot.send_message(message.from_user.id, "Введите стоимость покупки:")
             return
+        sign = -1 if split[0].startswith("-") else 1
+        cost = rub * 100 + cop * sign
         with BuyStorage(private_constants.DB_NAME) as buy:
             buy.set_cost(message.from_user.id, cost)
             (room_id, members, buy_name, cost) = buy.get(message.from_user.id)
@@ -481,7 +508,8 @@ def pay_get_user_id(bot: telebot.TeleBot, message: types.Message) -> None:
                         bot.send_message(message.from_user.id, "Нельзя перевести деньги себе")
                         return
                     pay.set_receiver(message.from_user.id, int(room_member['id']), room_member['name'])
-                    bot.send_message(message.from_user.id, "Введите переведенную сумму:")
+                    bot.send_message(message.from_user.id, "Введите переведенную сумму:",
+                                     reply_markup=runtime_constants.CANCEL_MARKUP)
                     with UserStateStorage(private_constants.DB_NAME) as user_state:
                         user_state.set_state(message.from_user.id, FUNCTION_NAME_TO_STATE["pay_get_value"])
                     return
@@ -495,7 +523,7 @@ def pay_get_value(bot: telebot.TeleBot, message: types.Message) -> None:
         with PayStorage(private_constants.DB_NAME) as pay:
             pay.delete(message.from_user.id)
         return
-    split = message.text.split('.')
+    split = message.text.strip().split('.')
     if len(split) > 2:
         bot.send_message(message.from_user.id,
                          "Неверный формат. Стоимость указывается так: 2000, или так: 923.53")
@@ -507,15 +535,20 @@ def pay_get_value(bot: telebot.TeleBot, message: types.Message) -> None:
                                  "Неверный формат. Стоимость указывается так: 2000, или так: 923.53")
                 return
             elif len(split[1]) == 2:
-                value = int(split[0]) * 100 + int(split[1])
+                rub = int(split[0])
+                cop = int(split[1])
             else:
-                value = int(split[0]) * 100 + int(split[1]) * 10
+                rub = int(split[0])
+                cop = int(split[1]) * 10
         elif len(split) == 1:
-            value = int(split[0]) * 100
+            rub = int(split[0])
+            cop = 0
         else:
             print("[BUY] Empty telegram message")
             bot.send_message(message.from_user.id, "Введите стоимость покупки:")
             return
+        sign = -1 if split[0].startswith("-") else 1
+        value = rub * 100 + cop * sign
         with PayStorage(private_constants.DB_NAME) as pay:
             pay.set_value(message.from_user.id, value)
             (room_id, (receiver_id, receiver_name), value) = pay.get(message.from_user.id)
