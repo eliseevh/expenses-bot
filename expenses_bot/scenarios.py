@@ -102,6 +102,16 @@ def start(bot: telebot.TeleBot, message: types.Message) -> None:
         send_rooms_keyboard(bot, message.from_user.id, "узнать кому ты должен перевести деньги",
                             FUNCTION_NAME_TO_STATE["debts_get_debts"])
     elif message.text == "/start":
+        bot.send_message(message.from_user.id,
+                         "Привет! Этот бот поможет тебе и твоим друзьям следить "
+                         "за долгами, когда вы покупаете что-то вместе")
+        bot.send_message(message.from_user.id, "Чтобы начать пользоваться ботом тебе нужно создать комнату, "
+                                               "или войти в комнату, созданную твоим другом\n"
+                                               "Комната - набор из нескольких человек, "
+                                               "между которыми можно делить покупки\n"
+                                               "Бот иногда может работать неправильно, если кажется что "
+                                               "ты столкнулся с такой ситуацией - можешь сообщить @eliseev1_1"
+                         )
         send_action_keyboard(bot, message.from_user.id)
         with UserStateStorage(private_constants.DB_NAME) as user_state:
             user_state.set_state(message.from_user.id, 0)
@@ -420,8 +430,6 @@ def buy_finish(bot: telebot.TeleBot, message: types.Message) -> None:
                 bot.send_message(message.from_user.id,
                                  f"При попытке сообщить о покупке возникли ошибки:\n{errors}")
             else:
-                if 'extensions' in result and result['extensions'] == "error on saving log":
-                    bot.send_message(private_constants.OWNER_TELEGRAM_ID, "ERROR ON SAVING LOG:\n" + str(result))
                 bot.send_message(message.from_user.id, "Информация о покупке успешно добавлена")
                 buyer_name = "Неизвестен"
                 room = expenses_bot.api.get_room(room_id)
@@ -589,8 +597,6 @@ def pay_finish(bot: telebot.TeleBot, message: types.Message) -> None:
                 bot.send_message(message.from_user.id,
                                  f"При попытке сообщить о переводе возникли ошибки:\n{errors}")
             else:
-                if 'extensions' in result and result['extensions'] == "error on saving log":
-                    bot.send_message(private_constants.OWNER_TELEGRAM_ID, "ERROR ON SAVING LOG:\n" + str(result))
                 bot.send_message(message.from_user.id, "Информация о переводе успешно добавлена")
                 sender_name = "Неизвестен"
                 room = expenses_bot.api.get_room(room_id)

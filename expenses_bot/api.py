@@ -9,7 +9,7 @@ def send_mutation_request(method: str, typename: str, return_name: str, obj: dic
             "variables": {"input": obj}
             }
     print("[SEND_MUTATION_REQUEST] Sending json:", body)
-    return requests.post(private_constants.API_BASE_URL, json=body).json()
+    return requests.post(private_constants.API_URL, json=body).json()
 
 
 def send_query_request(method: str, typename: str, arg_name: str, return_name: str, obj: dict | str) -> dict:
@@ -17,7 +17,7 @@ def send_query_request(method: str, typename: str, arg_name: str, return_name: s
                      + "{" + f"{method}({arg_name}: $input)" + "{" + return_name + "}}",
             "variables": {"input": obj}}
     print("[SEND_QUERY_REQUEST] Sending json:", body)
-    return requests.post(private_constants.API_BASE_URL, json=body).json()
+    return requests.post(private_constants.API_URL, json=body).json()
 
 
 class User:
