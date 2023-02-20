@@ -56,8 +56,8 @@ def get_rooms(user_id: int) -> [str]:
 def send_rooms_keyboard(bot: telebot.TeleBot, user_id: int, action: str, next_state: int) -> None:
     rooms = get_rooms(user_id)
     if rooms == "Error":
-        bot.send_message(user_id, "Не получилось узнать список ваших комнат. К сожалению, "
-                                  "в данный момент вы не можете " + action)
+        bot.send_message(user_id, "Не получилось узнать список твоих комнат. К сожалению, "
+                                  "в данный момент ты не можешь " + action)
         send_action_keyboard(bot, user_id)
         with UserStateStorage(private_constants.DB_NAME) as user_state:
             user_state.set_state(user_id, 0)
@@ -99,8 +99,12 @@ def start(bot: telebot.TeleBot, message: types.Message) -> None:
         send_rooms_keyboard(bot, message.from_user.id, "узнать свой баланс",
                             FUNCTION_NAME_TO_STATE["balance_get_balance"])
     elif message.text == runtime_constants.BUTTON_DEBTS.text:
-        send_rooms_keyboard(bot, message.from_user.id, "узнать кому вы должны перевести деньги",
+        send_rooms_keyboard(bot, message.from_user.id, "узнать кому ты должен перевести деньги",
                             FUNCTION_NAME_TO_STATE["debts_get_debts"])
+    elif message.text == "/start":
+        send_action_keyboard(bot, message.from_user.id)
+        with UserStateStorage(private_constants.DB_NAME) as user_state:
+            user_state.set_state(message.from_user.id, 0)
     else:
         bot.send_message(message.from_user.id, "Неизвестная команда")
         send_action_keyboard(bot, message.from_user.id)
@@ -148,7 +152,7 @@ def create_room_get_user_name(bot: telebot.TeleBot, message: types.Message) -> N
         result = create_room.get(message.from_user.id)
 
     bot.send_message(message.from_user.id,
-                     f"Вы действительно хотите создать комнату "
+                     f"Ты действительно хочешь создать комнату "
                      f"{result[0]} с паролем {result[1]} "
                      f"и именем {result[2]}?",
                      reply_markup=runtime_constants.YES_NO_MARKUP
@@ -225,7 +229,7 @@ def sign_in_room_get_user_name(bot: telebot.TeleBot, message: types.Message) -> 
             errors = "\n".join(map(lambda err: err['message'], result['errors']))
             bot.send_message(message.from_user.id, f"Не удалось присоединиться к комнате:\n{errors}")
         else:
-            bot.send_message(message.from_user.id, f"Вы успешно присоединились к комнате!")
+            bot.send_message(message.from_user.id, f"Ты успешно присоединился к комнате!")
         send_action_keyboard(bot, message.from_user.id)
         sign_in_room.delete(message.from_user.id)
     with UserStateStorage(private_constants.DB_NAME) as user_state:
@@ -244,7 +248,7 @@ def sign_out_room_get_room_id(bot: telebot.TeleBot, message: types.Message) -> N
         errors = "\n".join(map(lambda err: err['message'], result['errors']))
         bot.send_message(message.from_user.id, f"Не удалось выйти из комнаты:\n{errors}")
     else:
-        bot.send_message(message.from_user.id, f"Вы успешно вышли из комнаты")
+        bot.send_message(message.from_user.id, f"Ты успешно вышел из комнаты")
     send_action_keyboard(bot, message.from_user.id)
     with UserStateStorage(private_constants.DB_NAME) as user_state:
         user_state.set_state(message.from_user.id, 0)
@@ -263,7 +267,7 @@ def buy_get_room_id(bot: telebot.TeleBot, message: types.Message) -> None:
         room = expenses_bot.api.get_room(room_id)
         if 'errors' in room:
             bot.send_message(message.from_user.id,
-                             "Произошла ошибка. К сожалению, в данный момент вы не можете сообщить о покупке")
+                             "Произошла ошибка. К сожалению, в данный момент ты не можешь сообщить о покупке")
             send_action_keyboard(bot, message.from_user.id)
             with UserStateStorage(private_constants.DB_NAME) as user_state:
                 user_state.set_state(message.from_user.id, 0)
@@ -299,7 +303,7 @@ def buy_get_members(bot: telebot.TeleBot, message: types.Message) -> None:
         room = expenses_bot.api.get_room(room_id)
         if 'errors' in room:
             bot.send_message(message.from_user.id,
-                             "Произошла ошибка. К сожалению, в данный момент вы не можете сообщить о покупке")
+                             "Произошла ошибка. К сожалению, в данный момент ты не можешь сообщить о покупке")
             send_action_keyboard(bot, message.from_user.id)
             with UserStateStorage(private_constants.DB_NAME) as user_state:
                 user_state.set_state(message.from_user.id, 0)
@@ -309,7 +313,6 @@ def buy_get_members(bot: telebot.TeleBot, message: types.Message) -> None:
             found = False
             markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
             markup.add(types.KeyboardButton("Перейти к следующему шагу"))
-
             for room_member in room_members:
                 if room_member['name'] == message.text:
                     if room_member['id'] == str(message.from_user.id):
@@ -318,12 +321,13 @@ def buy_get_members(bot: telebot.TeleBot, message: types.Message) -> None:
                     elif int(room_member['id']) in members:
                         bot.send_message(message.from_user.id, f"{room_member['name']} уже добавлен")
                         return
+                    chosen_member = room_member
                     found = True
-                    break
                 elif room_member['id'] != str(message.from_user.id) and int(room_member['id']) not in members:
                     markup.add(types.KeyboardButton(room_member['name']))
+            markup.add(runtime_constants.BUTTON_CANCEL)
             if found:
-                buy.add_member(message.from_user.id, int(room_member['id']))
+                buy.add_member(message.from_user.id, int(chosen_member['id']))
                 bot.send_message(message.from_user.id, f"{message.text} добавлен", reply_markup=markup)
             else:
                 bot.send_message(message.from_user.id, f"В комнате нет человека с именем \"{message.text}\"",
@@ -373,7 +377,7 @@ def buy_get_cost(bot: telebot.TeleBot, message: types.Message) -> None:
             cop = 0
         else:
             print("[BUY] Empty telegram message")
-            bot.send_message(message.from_user.id, "Введите стоимость покупки:")
+            bot.send_message(message.from_user.id, "Введи стоимость покупки:")
             return
         sign = -1 if split[0].startswith("-") else 1
         cost = rub * 100 + cop * sign
@@ -381,8 +385,8 @@ def buy_get_cost(bot: telebot.TeleBot, message: types.Message) -> None:
             buy.set_cost(message.from_user.id, cost)
             (room_id, members, buy_name, cost) = buy.get(message.from_user.id)
             bot.send_message(message.from_user.id,
-                             f"Вы действительно хотите сообщить о покупке {buy_name}"
-                             f" за {show_money(cost)}руб., разделенной между вами "
+                             f"Ты действительно хочешь сообщить о покупке {buy_name}"
+                             f" за {show_money(cost)}руб., разделенной между тобой "
                              f"и выбранными {len(members)} пользователями?",
                              reply_markup=expenses_bot.runtime_constants.YES_NO_MARKUP
                              )
@@ -422,23 +426,23 @@ def buy_finish(bot: telebot.TeleBot, message: types.Message) -> None:
                 buyer_name = "Неизвестен"
                 room = expenses_bot.api.get_room(room_id)
                 if 'errors' in room:
-                    print("BUY [!ERROR!] Unable to get room, should be unreachable")
+                    print("[BUY] [!ERROR!] Unable to get room, should be unreachable")
                 else:
                     room_members = room['data']['getRoom']['members']
-                for member in room_members:
-                    if member['id'] == str(message.from_user.id):
-                        buyer_name = member['name']
-                        break
-                for member in members:
-                    try:
-                        bot.send_message(member,
-                                         f"Пользователь {buyer_name} купил {buy_name} "
-                                         f"за {show_money(cost)}руб. и "
-                                         f"разделил эту покупку между собой, вами и ещё "
-                                         f"{len(members) - 1} людьми"
-                                         )
-                    except Exception as e:
-                        print("[BUY] [!ERROR!]", e)
+                    for member in room_members:
+                        if member['id'] == str(message.from_user.id):
+                            buyer_name = member['name']
+                            break
+                    for member in members:
+                        try:
+                            bot.send_message(member,
+                                             f"Пользователь {buyer_name} купил {buy_name} "
+                                             f"за {show_money(cost)}руб. и "
+                                             f"разделил эту покупку между собой, тобой и ещё "
+                                             f"{len(members) - 1} людьми"
+                                             )
+                        except Exception as e:
+                            print("[BUY] [!ERROR!]", e)
         buy.delete(message.from_user.id)
         send_action_keyboard(bot, message.from_user.id)
         with UserStateStorage(private_constants.DB_NAME) as user_state:
@@ -458,7 +462,7 @@ def pay_get_room_id(bot: telebot.TeleBot, message: types.Message) -> None:
         room = expenses_bot.api.get_room(room_id)
         if 'errors' in room:
             bot.send_message(message.from_user.id,
-                             "Произошла ошибка. К сожалению, в данный момент вы не можете сообщить о переводе")
+                             "Произошла ошибка. К сожалению, в данный момент ты не можешь сообщить о переводе")
             send_action_keyboard(bot, message.from_user.id)
             with UserStateStorage(private_constants.DB_NAME) as user_state:
                 user_state.set_state(message.from_user.id, 0)
@@ -495,7 +499,7 @@ def pay_get_user_id(bot: telebot.TeleBot, message: types.Message) -> None:
         room = expenses_bot.api.get_room(room_id)
         if 'errors' in room:
             bot.send_message(message.from_user.id,
-                             "Произошла ошибка. К сожалению, в данный момент вы не можете сообщить о переводе")
+                             "Произошла ошибка. К сожалению, в данный момент ты не можешь сообщить о переводе")
             send_action_keyboard(bot, message.from_user.id)
             with UserStateStorage(private_constants.DB_NAME) as user_state:
                 user_state.set_state(message.from_user.id, 0)
@@ -508,7 +512,7 @@ def pay_get_user_id(bot: telebot.TeleBot, message: types.Message) -> None:
                         bot.send_message(message.from_user.id, "Нельзя перевести деньги себе")
                         return
                     pay.set_receiver(message.from_user.id, int(room_member['id']), room_member['name'])
-                    bot.send_message(message.from_user.id, "Введите переведенную сумму:",
+                    bot.send_message(message.from_user.id, "Введи переведенную сумму:",
                                      reply_markup=runtime_constants.CANCEL_MARKUP)
                     with UserStateStorage(private_constants.DB_NAME) as user_state:
                         user_state.set_state(message.from_user.id, FUNCTION_NAME_TO_STATE["pay_get_value"])
@@ -545,7 +549,7 @@ def pay_get_value(bot: telebot.TeleBot, message: types.Message) -> None:
             cop = 0
         else:
             print("[BUY] Empty telegram message")
-            bot.send_message(message.from_user.id, "Введите стоимость покупки:")
+            bot.send_message(message.from_user.id, "Введи стоимость покупки:")
             return
         sign = -1 if split[0].startswith("-") else 1
         value = rub * 100 + cop * sign
@@ -553,7 +557,7 @@ def pay_get_value(bot: telebot.TeleBot, message: types.Message) -> None:
             pay.set_value(message.from_user.id, value)
             (room_id, (receiver_id, receiver_name), value) = pay.get(message.from_user.id)
             bot.send_message(message.from_user.id,
-                             f"Вы действительно хотите сообщить о переводе "
+                             f"Ты действительно хочешь сообщить о переводе "
                              f"{show_money(value)}руб. пользователю {receiver_name}?",
                              reply_markup=expenses_bot.runtime_constants.YES_NO_MARKUP)
             with UserStateStorage(private_constants.DB_NAME) as user_state:
@@ -600,7 +604,7 @@ def pay_finish(bot: telebot.TeleBot, message: types.Message) -> None:
                         break
                 try:
                     bot.send_message(receiver_id,
-                                     f"Пользователь {sender_name} перевел вам {show_money(value)}руб.")
+                                     f"Пользователь {sender_name} перевел тебе {show_money(value)}руб.")
                 except Exception as e:
                     print("[PAY] [!ERROR!]", e)
         pay.delete(message.from_user.id)
@@ -618,17 +622,17 @@ def balance_get_balance(bot: telebot.TeleBot, message: types.Message) -> None:
     room = expenses_bot.api.get_room(room_id)
     if 'errors' in room:
         bot.send_message(message.from_user.id,
-                         "Произошла ошибка. К сожалению, в данный момент вы не можете узнать свой баланс")
+                         "Произошла ошибка. К сожалению, в данный момент ты не можешь узнать свой баланс")
     else:
         for member in room['data']['getRoom']['members']:
             if member['id'] == str(message.from_user.id):
                 balance = member['debit']
                 text = show_money(balance) + "руб."
-                description = f"Вам должны {show_money(-balance)}" if member['debit'] < 0 else (
-                    "Вы ничего не должны и вам ничего не должны" if balance == 0 else
-                    f"Вы должны {show_money(balance)}")
+                description = f"Тебе должны {show_money(-balance)}" if member['debit'] < 0 else (
+                    "Ты ничего не должен и тебе ничего не должны" if balance == 0 else
+                    f"Ты должен {show_money(balance)}")
                 bot.send_message(message.from_user.id,
-                                 f"Ваш баланс: {text}({description})")
+                                 f"Твой баланс: {text}({description})")
     send_action_keyboard(bot, message.from_user.id)
     with UserStateStorage(private_constants.DB_NAME) as user_state:
         user_state.set_state(message.from_user.id, 0)
@@ -643,8 +647,8 @@ def debts_get_debts(bot: telebot.TeleBot, message: types.Message) -> None:
     room = expenses_bot.api.get_room(room_id)
     if 'errors' in room:
         bot.send_message(message.from_user.id,
-                         "Произошла ошибка. К сожалению, в данный момент вы "
-                         "не можете узнать кому вы должны перевести деньги")
+                         "Произошла ошибка. К сожалению, в данный момент ты "
+                         "не можешь узнать кому ты должен перевести деньги")
     else:
         members = room['data']['getRoom']['members']
         user = list(filter(lambda member: member['id'] == str(message.from_user.id), members))[0]
@@ -660,9 +664,9 @@ def debts_get_debts(bot: telebot.TeleBot, message: types.Message) -> None:
                     result.append((member['name'], current))
                     break
             text = "\n".join(map(lambda member: f"{member[0]}: {show_money(member[1])}", result))
-            bot.send_message(message.from_user.id, f"Вы должны заплатить:\n{text}")
+            bot.send_message(message.from_user.id, f"Ты должен заплатить:\n{text}")
         else:
-            bot.send_message(message.from_user.id, "Вы никому не должны ничего платить")
+            bot.send_message(message.from_user.id, "Ты никому не должен ничего платить")
     send_action_keyboard(bot, message.from_user.id)
     with UserStateStorage(private_constants.DB_NAME) as user_state:
         user_state.set_state(message.from_user.id, 0)
